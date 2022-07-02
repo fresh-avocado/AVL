@@ -16,3 +16,4 @@
 - [ ] volver a cada nodo genérico con un parámetro que sea un _lambda_ que compare dos nodos y retorne 1, 0 o -1 (dependiendo si uno es mayor, son iguales o el otro es mayor)
 - [ ] corregir la mantenibilidad y legibilidad del código
 - [ ] añadir atributo `parent` a los nodos para que `successor` y `predecessor` sean más simples
+- [ ] añadir `clang-tidy`, `clang-format`, `git hooks` (pre-commit y commit-msg) y carpeta de tests
