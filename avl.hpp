@@ -2,14 +2,23 @@
 #include <functional>
 #include <iostream>
 
+#define NOT_FOUND INT32_MIN
+
 struct Node {
   int data;
   Node* left;
   Node* right;
+  Node* parent;
   int hl;
   int hr;
 
-  Node(int data) : data{data}, left{nullptr}, right{nullptr}, hl{0}, hr{0} {}
+  Node(int data)
+      : data{data},
+        left{nullptr},
+        right{nullptr},
+        parent{nullptr},
+        hl{0},
+        hr{0} {}
 };
 
 class AVL {
@@ -18,23 +27,108 @@ class AVL {
  public:
   AVL() : root{nullptr} {}
 
+  int getHeight() const { return getHeight(root); }
+
+  int getRoot() const { return root->data; };
+
   void insert(int data) {
     if (root == nullptr) {
       root = new Node(data);
     } else {
-      Node* parentOfRoot = nullptr;
-      insertRecursive(parentOfRoot, root, data);
+      insertRecursive(root, data);
     }
   }
+
+  int maximum() const { return maximumNode(root)->data; }
+
+  int minimum() const { return minimumNode(root)->data; }
 
   void inorder(const std::function<void(int)>& process) const {
     inorderTraversal(root, process);
   }
 
+  std::string inorderString() const {
+    std::string str = "";
+    inorderTraversal(root,
+                     [&](int data) { str += std::to_string(data) + " "; });
+    return str;
+  }
+
   int getMaxWeightPathBetweenLeafs() const { return maxSumPath(root); }
 
-  // TODO: predecessor
-  // TODO: delete
+  void remove(int key) {
+    Node* nodeToRemove = findNode(key, root);
+    if (nodeToRemove->left == nullptr && nodeToRemove->right == nullptr) {
+      // node has no children
+      if (nodeToRemove->data > nodeToRemove->parent->data) {
+        nodeToRemove->parent->right = nullptr;
+      } else {
+        nodeToRemove->parent->left = nullptr;
+      }
+      fixup(nodeToRemove->parent);
+      delete nodeToRemove;
+    } else if (nodeToRemove->left == nullptr ||
+               nodeToRemove->right == nullptr) {
+      // node has one child
+      Node* child =
+          nodeToRemove->left ? nodeToRemove->left : nodeToRemove->right;
+      if (nodeToRemove->parent->data > nodeToRemove->data) {
+        nodeToRemove->parent->right = child;
+      } else {
+        nodeToRemove->parent->left = child;
+      }
+      child->parent = nodeToRemove->parent;
+      fixup(nodeToRemove->parent);
+      delete nodeToRemove;
+    } else {
+      // node has two children
+      if (nodeToRemove->hl < nodeToRemove->hr) {
+        // reemplazar con predecesor
+        Node* predecessor = maximumNode(nodeToRemove->left);
+
+        int temp = predecessor->data;
+        predecessor->data = nodeToRemove->data;
+        nodeToRemove->data = temp;
+
+        if (temp > predecessor->parent->data) {
+          predecessor->parent->right = nullptr;
+        } else {
+          predecessor->parent->left = nullptr;
+        }
+        fixup(predecessor->parent);
+        delete predecessor;
+      } else {
+        // reemplazar con sucesor
+        Node* sucessor = minimumNode(nodeToRemove->right);
+
+        int temp = sucessor->data;
+        sucessor->data = nodeToRemove->data;
+        nodeToRemove->data = temp;
+
+        if (temp > sucessor->parent->data) {
+          sucessor->parent->right = nullptr;
+        } else {
+          sucessor->parent->left = nullptr;
+        }
+        fixup(sucessor->parent);
+        delete sucessor;
+      }
+    }
+  }
+
+  int predecessor(int key) const {
+    Node* foundNode = findNode(key, root);
+    if (foundNode) {
+      if (foundNode->left) {
+        return maximumNode(foundNode->left)->data;
+      } else {
+        Node* predecessor = predecessorUp(foundNode);
+        return predecessor != nullptr ? predecessor->data : NOT_FOUND;
+      }
+    } else {
+      return NOT_FOUND;
+    }
+  }
 
   int successor(int key) const {
     Node* foundNode = findNode(key, root);  // O(lg n)
@@ -42,13 +136,11 @@ class AVL {
       if (foundNode->right) {
         return minimumNode(foundNode->right)->data;  // O(lg n)
       } else {
-        Node* successor = nullptr;
-        int lock = 0;
-        successorUp(key, nullptr, root, &successor, &lock);  // O(lg n)
-        return successor != nullptr ? successor->data : INT32_MIN;
+        Node* successor = successorUp(foundNode);  // O(lg n)
+        return successor != nullptr ? successor->data : NOT_FOUND;
       }
     } else {
-      return INT32_MIN;
+      return NOT_FOUND;
     }
   }
 
@@ -57,13 +149,45 @@ class AVL {
     if (foundNode) {
       return foundNode->data;
     } else {
-      return INT32_MIN;
+      return NOT_FOUND;
     }
   }
 
+ private:
   ~AVL() noexcept { clear(root); }
 
- private:
+  void fixup(Node* _root) {
+    while (_root != nullptr) {
+      _root->hl = getHeight(_root->left);
+      _root->hr = getHeight(_root->right);
+      int balanceFactor = _root->hl - _root->hr;
+      if (balanceFactor < -1) {
+        // right heavy
+        int balanceFactorRight = _root->right->hl - _root->right->hr;
+        if (balanceFactorRight >= 0) {
+          // RL rotation
+          rightRotation(_root->right, _root->right->left);
+          leftRotation(_root, _root->right);
+        } else {
+          // L rotation
+          leftRotation(_root, _root->right);
+        }
+      } else if (balanceFactor > 1) {
+        // left heavy
+        int balanceFactorLeft = _root->left->hl - _root->left->hr;
+        if (balanceFactorLeft <= 0) {
+          // LR rotation
+          leftRotation(_root->left, _root->left->right);
+          rightRotation(_root, _root->left);
+        } else {
+          // R rotation
+          rightRotation(_root, _root->left);
+        }
+      }
+      _root = _root->parent;
+    }
+  }
+
   Node* minimumNode(Node* _root) const {
     while (_root->left != nullptr) {
       _root = _root->left;
@@ -71,42 +195,37 @@ class AVL {
     return _root;
   }
 
-  void successorUp(int key,
-                   Node* _root,
-                   Node* node,
-                   Node** successor,
-                   int* lock) const {
-    if (node == nullptr) {
-      return;
+  Node* maximumNode(Node* _root) const {
+    while (_root->right != nullptr) {
+      _root = _root->right;
     }
-    if (key > node->data) {
-      successorUp(key, node, node->right, successor, lock);
-    } else if (key < node->data) {
-      successorUp(key, node, node->left, successor, lock);
-    }
-    if (_root == nullptr) {
-      return;
-    } else {
-      if (_root->left == node && *lock != 1) {
-        *successor = _root;
-        *lock = 1;
-        return;
-      }
-    }
+    return _root;
   }
 
-  // Node* successorDown(int key, Node* _root) const {
-  //   if (_root == nullptr) {
-  //     return nullptr;
-  //   }
-  //   if (key > _root->data) {
-  //     return successorDown(key, _root->right);
-  //   } else if (key < _root->data) {
-  //     return successorDown(key, _root->left);
-  //   } else {
-  //     return minimumNode(_root->right);
-  //   }
-  // }
+  // es básicamente el proceso inverso a minimumNode
+  // subimos hasta que detectemos que ahora estamos en
+  // el subárbol derecho y como hemos estado subiendo
+  // siendo hijos izquierdos, sabemos que:
+  // Node* r = successorUp(node);
+  // node == minimumNode(r);
+  // y por lo tanto encontramos al sucesor
+  Node* successorUp(Node* _root) const {
+    Node* y = _root->parent;
+    while (y != nullptr && _root == y->right) {
+      _root = y;
+      y = y->parent;
+    }
+    return y;
+  }
+
+  Node* predecessorUp(Node* _root) const {
+    Node* y = _root->parent;
+    while (y != nullptr && _root == y->left) {
+      _root = y;
+      y = y->parent;
+    }
+    return y;
+  }
 
   Node* findNode(int key, Node* _root) const {
     if (_root == nullptr) {
@@ -161,79 +280,91 @@ class AVL {
     inorderTraversal(_root->right, process);
   }
 
-  void leftRotation(Node* parent, Node* x, Node* y) {
+  void leftRotation(Node* x, Node* y) {
+    if (y->left) {
+      y->left->parent = x;
+    }
     x->right = y->left;
-    if (parent == nullptr) {
+    if (x->parent == nullptr) {
       root = y;
-    } else if (x->data < parent->data) {
-      parent->left = y;
+    } else if (x->data < x->parent->data) {
+      x->parent->left = y;
     } else {
-      parent->right = y;
+      x->parent->right = y;
     }
     y->left = x;
+    y->parent = x->parent;
+    x->parent = y;
 
     x->hr = getHeight(x->right);
     y->hl = getHeight(y->left);
   }
 
-  void rightRotation(Node* parent, Node* y, Node* x) {
-    y->left = x->right;
-    if (parent == nullptr) {
-      root = x;
-    } else if (y->data > parent->data) {
-      parent->right = x;
-    } else {
-      parent->left = x;
+  void rightRotation(Node* x, Node* y) {
+    if (y->right) {
+      y->right->parent = x;
     }
-    x->right = y;
+    x->left = y->right;
+    if (x->parent == nullptr) {
+      root = y;
+    } else if (x->data > x->parent->data) {
+      x->parent->right = y;
+    } else {
+      x->parent->left = y;
+    }
+    y->right = x;
+    y->parent = x->parent;
+    x->parent = y;
 
-    y->hl = getHeight(y->left);
-    x->hr = getHeight(x->right);
+    x->hl = getHeight(x->left);
+    y->hr = getHeight(y->right);
   }
 
-  void insertRecursive(Node*& parent, Node*& current, int data) {
+  void insertRecursive(Node*& current, int data) {
     if (data > current->data) {
       if (current->right == nullptr) {
         current->right = new Node(data);
+        current->right->parent = current;
         current->hr = getHeight(current->right);
       } else {
-        insertRecursive(current, current->right, data);
+        insertRecursive(current->right, data);
         current->hr = getHeight(current->right);
         int balanceFactor = current->hl - current->hr;
         if (balanceFactor < -1) {
           if (data > current->right->data) {
-            leftRotation(parent, current, current->right);
+            leftRotation(current, current->right);
           } else {
-            rightRotation(current, current->right, current->right->left);
-            leftRotation(parent, parent->right, parent->right->right);
+            rightRotation(current->right, current->right->left);
+            leftRotation(current, current->right);
           }
         }
       }
     } else if (data < current->data) {
       if (current->left == nullptr) {
         current->left = new Node(data);
+        current->left->parent = current;
         current->hl = getHeight(current->left);
       } else {
-        insertRecursive(current, current->left, data);
+        insertRecursive(current->left, data);
         current->hl = getHeight(current->left);
         int balanceFactor = current->hl - current->hr;
         if (balanceFactor > 1) {
           if (data < current->left->data) {
-            rightRotation(parent, current, current->left);
+            rightRotation(current, current->left);
           } else {
-            leftRotation(current, current->left, current->left->right);
-            rightRotation(parent, parent->left, parent->left->left);
+            leftRotation(current->left, current->left->right);
+            rightRotation(current, current->left);
           }
         }
       }
     } else {
-      return;
+      throw "duplicated key";
     }
   }
 
-  inline int getHeight(Node*& node) const {
+  inline int getHeight(Node* node) const {
     if (node == nullptr) {
-      return -1;
+      return 0;
     } else {
       return std::max({node->hl, node->hr}) + 1;
     }
