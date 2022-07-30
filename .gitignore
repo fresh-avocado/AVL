@@ -2,3 +2,4 @@
 a.out
 avl
 avltest
+*.o
