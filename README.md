@@ -17,3 +17,10 @@
 | `getMaxWeightPathBetweenLeafs` |   `O(n)`    |         Obtiene el peso del camino de máximo peso entre dos hojas, funciona para cualquier árbol binario         |                                                     -                                                     |
 |            `clear`             |   `O(n)`    |                                       Borra todos los nodos en _postorder_                                       |                                                     -                                                     |
 |          `getHeight`           |   `O(1)`    |                                            Devuelve la altura del AVL                                            |                                                     -                                                     |
+
+## ¿Cómo correrlo?
+
+```bash
+make
+./avl
+```
