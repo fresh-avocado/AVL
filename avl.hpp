@@ -4,6 +4,13 @@
 
 #define NOT_FOUND INT32_MIN
 
+// TODO: un logger simple que tenga ERROR, WARN, INFO, un timestamp
+#ifdef DEBUG
+#define log(...) printf(__VA_ARGS__)
+#else
+#define log(...)
+#endif
+
 struct Node {
   int data;
   Node* left;
@@ -24,7 +31,7 @@ struct Node {
 
 // TODO: poner los TODOs de abajo en un issue
 // TODO: templatizar
-// TODO: is copy constructible type trait, porque se hacen copias
+// TODO: is copy constructible type trait O MOVE CONSTRUCTIBLE?
 // TODO: T key, U data
 // TODO: un lambda que retorne un valor específico dado un U
 // TODO: testing exhaustivo
@@ -79,7 +86,7 @@ class AVL {
                         const std::function<void(int)>& process) const;
   void leftRotation(Node* x, Node* y);
   void rightRotation(Node* x, Node* y);
-  void insertRecursive(Node*& current, int data);
+  void insertRecursive(Node* current, int data);
   inline int getHeight(Node* node) const;
   void clear(Node* _root);
 };

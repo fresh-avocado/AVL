@@ -43,62 +43,34 @@ int main(void) {
       return 1;
   });
 
+  // TODO: mejorar el `fastInsert`
+  // TODO: exec time entre `insert` y `fastInsert`
   for (int i = 0; i <= 1000; i += 2) {
     avl->fastInsert(i);
   }
 
   std::vector<int> svec = {510, 512, 514, 508, 506, 210, 1000,
-                           1,   2,   3,   4,   5,   500};
+                           1,   2,   3,   4,   5,   500, 516};
   // std::vector<int> svec = {510, 512};
 
   for (auto s : svec) {
     std::string e = std::to_string(s);
     std::size_t foundPos = initial.find(e);
     initial.erase(foundPos, e.length() + 1);
+    log("avl->remove(%d)\n", s);
     avl->remove(s);
+    log("\tnew root: %d\n", avl->getRoot());
+    log("avl->findKey(%d)\n", s);
+    log("================\n");
+    assert(avl->findKey(s) == NOT_FOUND);
+    std::string avlStr = avl->inorderString();
+    log("about to compare strings\n");
+    if (initial.compare(avlStr) != 0) {
+      log("expected\n%s\n", initial.c_str());
+      log("received\n%s\n", avlStr.c_str());
+    }
+    log("compared strings\n");
   }
-
-  // std::cout << initial << std::endl;
-
-  // assert(avl->findKey(0) == 0);
-  // assert(avl->findKey(250) == 250);
-  // assert(avl->findKey(500) == 500);
-  // assert(avl->findKey(750) == 750);
-  // assert(avl->findKey(1000) == 1000);
-
-  // assert(avl->successor(0) == 2);
-  // assert(avl->successor(250) == 252);
-  // assert(avl->successor(500) == 502);
-  // assert(avl->successor(750) == 752);
-  // assert(avl->successor(1000) == NOT_FOUND);
-
-  // assert(avl->predecessor(0) == NOT_FOUND);
-  // assert(avl->predecessor(250) == 248);
-  // assert(avl->predecessor(500) == 498);
-  // assert(avl->predecessor(750) == 748);
-  // assert(avl->predecessor(1000) == 998);
-
-  // int key1 = avl->getRoot();
-  // int key2 = 1000;
-  // int key3 = 552;
-
-  // avl->remove(key1);
-  // assert(avl->findKey(key1) == NOT_FOUND);
-  // avl->remove(key2);
-  // assert(avl->findKey(key2) == NOT_FOUND);
-  // avl->remove(key3);
-  // assert(avl->findKey(key3) == NOT_FOUND);
-
-  // int key4 = avl->getRoot();
-  // avl->remove(key4);
-  // assert(avl->findKey(key4) == NOT_FOUND);
-
-  // avl->inorder([](int data) { printf("%d ", data); });
-  // printf("\n");
-
-  // printf("ALL TESTS PASSED\n");
-
-  // delete avl;
 
   return 0;
 }

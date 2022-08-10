@@ -20,7 +20,16 @@
 
 ## ¿Cómo correrlo?
 
+### Logs Off
+
 ```bash
-make
+make prod
+./avl
+```
+
+### Logs On
+
+```bash
+make debug
 ./avl
 ```

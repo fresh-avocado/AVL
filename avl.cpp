@@ -1,5 +1,6 @@
 #include "avl.hpp"
 
+// TODO: usar el comparator
 AVL::AVL(const std::function<int(int, int)>& comparator)
     : root{nullptr}, comparator{comparator} {}
 
@@ -80,6 +81,7 @@ void AVL::remove(int key) {
   Node* leftChild = nodeToRemove->left;
   Node* rightChild = nodeToRemove->right;
   if (leftChild == nullptr && rightChild == nullptr) {
+    log("no child\n");
     // node has no children
     // TODO aca
     if (nodeToRemove->parent == nullptr) {
@@ -94,10 +96,11 @@ void AVL::remove(int key) {
     }
     delete nodeToRemove;
   } else if (leftChild == nullptr || rightChild == nullptr) {
+    log("one child\n");
     // node has one child
     Node* child = leftChild ? leftChild : rightChild;
     // TODO aca
-    if (nodeToRemove->parent->data > nodeToRemove->data) {
+    if (nodeToRemove->data > nodeToRemove->parent->data) {
       nodeToRemove->parent->right = child;
     } else {
       nodeToRemove->parent->left = child;
@@ -111,26 +114,53 @@ void AVL::remove(int key) {
                             ? maximumNode(leftChild)
                             : minimumNode(rightChild);
 
+    log("node to delete: %d\n", nodeToRemove->data);
+    log("node to delete left: %d\n",
+        nodeToRemove->left ? nodeToRemove->left->data : -1);
+    log("node to delete right: %d\n",
+        nodeToRemove->right ? nodeToRemove->right->data : -1);
+    log("node to delete parent: %d\n",
+        nodeToRemove->parent ? nodeToRemove->parent->data : -1);
+    log("replacement: %d\n", replacement->data);
+    log("replacement parent: %d\n",
+        replacement->parent ? replacement->parent->data : -1);
+    log("replacement parent left: %d\n",
+        replacement->parent->left ? replacement->parent->left->data : -1);
+    log("replacement parent right: %d\n",
+        replacement->parent->right ? replacement->parent->right->data : -1);
+
     // TODO aca
     if (replacement->data > replacement->parent->data) {
+      log("1\n");
       if (replacement->left) {
+        log("2\n");
         replacement->parent->right = replacement->left;
-      } else if (replacement->right) {
-        replacement->parent->right = replacement->right;
+        replacement->left->parent = replacement->parent;
+        log("3\n");
       } else {
+        log("6\n");
         replacement->parent->right = nullptr;
+        log("7\n");
       }
     } else {
-      if (replacement->left) {
-        replacement->parent->left = replacement->left;
-      } else if (replacement->right) {
+      log("8\n");
+      if (replacement->right) {
+        log("11\n");
         replacement->parent->left = replacement->right;
+        replacement->right->parent = replacement->parent;
+        log("12\n");
       } else {
+        log("13\n");
         replacement->parent->left = nullptr;
+        log("14\n");
       }
     }
+    log("15\n");
     nodeToRemove->data = replacement->data;
+    log("16\n");
+    log("bf: %d\n", replacement->parent->hl - replacement->parent->hr);
     fixup(replacement->parent);
+    log("17\n");
     delete replacement;
   }
 }
@@ -174,9 +204,11 @@ int AVL::findKey(int key) const {
 
 void AVL::fixup(Node* _root) {
   while (_root != nullptr) {
+    Node* nextParent = _root->parent;
     _root->hl = getHeight(_root->left);
     _root->hr = getHeight(_root->right);
     int balanceFactor = _root->hl - _root->hr;
+
     if (balanceFactor < -1) {
       // right heavy
       int balanceFactorRight = _root->right->hl - _root->right->hr;
@@ -200,14 +232,16 @@ void AVL::fixup(Node* _root) {
         rightRotation(_root, _root->left);
       }
     }
-    _root = _root->parent;
+    _root = nextParent;
   }
 }
 
 Node* AVL::minimumNode(Node* _root) const {
   while (_root->left != nullptr) {
+    log("%d traversing...\n", _root->data);
     _root = _root->left;
   }
+  log("%d found...\n", _root->data);
   return _root;
 }
 
@@ -328,7 +362,7 @@ void AVL::rightRotation(Node* x, Node* y) {
   y->hr = getHeight(y->right);
 }
 
-void AVL::insertRecursive(Node*& current, int data) {
+void AVL::insertRecursive(Node* current, int data) {
   // TODO aca
   if (data > current->data) {
     if (current->right == nullptr) {
