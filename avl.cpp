@@ -4,34 +4,40 @@
 #define AVL_LESS -1
 #define AVL_EQUAL 0
 
-AVL::AVL(const std::function<int(int, int)>& comparator)
+template <typename KeyType, typename ValueType>
+AVL<KeyType, ValueType>::AVL(
+    const std::function<int(const KeyType&, const KeyType&)>& comparator)
     : root{nullptr}, comparator{comparator} {}
 
-int AVL::getHeight() const {
+template <typename KeyType, typename ValueType>
+int AVL<KeyType, ValueType>::getHeight() const {
   return getHeight(root);
 }
 
-int AVL::getRoot() const {
-  return root->data;
+template <typename KeyType, typename ValueType>
+int AVL<KeyType, ValueType>::getRoot() const {
+  return root->key;
 }
 
-void AVL::insert(int data) {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::insert(const KeyType& key) {
   if (root == nullptr) {
-    root = new Node(data);
+    root = new Node<KeyType, ValueType>(key);
   } else {
-    insertRecursive(root, data);
+    insertRecursive(root, key);
   }
 }
 
-void AVL::iterativeInsert(int data) {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::iterativeInsert(const KeyType& key) {
   if (root == nullptr) {
-    root = new Node(data);
+    root = new Node<KeyType, ValueType>(key);
   } else {
-    Node* parent = nullptr;
-    Node* current = root;
+    Node<KeyType, ValueType>* parent = nullptr;
+    Node<KeyType, ValueType>* current = root;
     while (current) {
       parent = current;
-      int comp = comparator(data, current->data);
+      int comp = comparator(key, current->key);
       if (comp == AVL_GREATER) {
         current = current->right;
       } else if (comp == AVL_LESS) {
@@ -40,53 +46,71 @@ void AVL::iterativeInsert(int data) {
         throw "duplicate key";
       }
     }
-    if (comparator(data, parent->data) == AVL_GREATER) {
-      parent->right = new Node(data);
+    if (comparator(key, parent->key) == AVL_GREATER) {
+      parent->right = new Node<KeyType, ValueType>(key);
       parent->right->parent = parent;
     } else {
-      parent->left = new Node(data);
+      parent->left = new Node<KeyType, ValueType>(key);
       parent->left->parent = parent;
     }
     fixup(parent);
   }
 }
 
-int AVL::maximum() const {
-  return maximumNode(root)->data;
+template <typename KeyType, typename ValueType>
+std::tuple<KeyType, ValueType> AVL<KeyType, ValueType>::maximum() const {
+  Node<KeyType, ValueType> node = maximumNode(root);
+  if (node) {
+    return {node->key, node->value};
+  } else {
+    return {nullptr, nullptr};
+  }
 }
 
-int AVL::minimum() const {
-  return minimumNode(root)->data;
+template <typename KeyType, typename ValueType>
+std::tuple<KeyType, ValueType> AVL<KeyType, ValueType>::minimum() const {
+  Node<KeyType, ValueType> node = minimumNode(root);
+  if (node) {
+    return {node->key, node->value};
+  } else {
+    return {nullptr, nullptr};
+  }
 }
 
-void AVL::inorder(const std::function<void(int)>& process) const {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::inorder(
+    const std::function<void(const KeyType&, const ValueType&)>& process)
+    const {
   inorderTraversal(root, process);
 }
 
-std::string AVL::inorderString() const {
+template <typename KeyType, typename ValueType>
+std::string AVL<KeyType, ValueType>::inorderString() const {
   std::string str = "";
-  inorderTraversal(root,
-                   [&str](int data) { str += std::to_string(data) + " "; });
+  inorderTraversal(
+      root, [&str](const KeyType& key) { str += std::to_string(key) + " "; });
   return str;
 }
 
-int AVL::getMaxWeightPathBetweenLeafs() const {
-  return maxSumPath(root);
-}
+// template <typename KeyType, typename ValueType>
+// int AVL<KeyType, ValueType>::getMaxWeightPathBetweenLeafs() const {
+//   return maxSumPath(root);
+// }
 
-void AVL::remove(int key) {
-  Node* nodeToRemove = findNode(key, root);
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::remove(const KeyType& key) {
+  Node<KeyType, ValueType>* nodeToRemove = findNode(key, root);
   if (nodeToRemove == nullptr)
     return;
-  Node* leftChild = nodeToRemove->left;
-  Node* rightChild = nodeToRemove->right;
+  Node<KeyType, ValueType>* leftChild = nodeToRemove->left;
+  Node<KeyType, ValueType>* rightChild = nodeToRemove->right;
   if (leftChild == nullptr && rightChild == nullptr) {
     log("no child\n");
     // node has no children
     if (nodeToRemove->parent == nullptr) {
       root = nullptr;
     } else {
-      if (comparator(nodeToRemove->data, nodeToRemove->parent->data) ==
+      if (comparator(nodeToRemove->key, nodeToRemove->parent->key) ==
           AVL_GREATER) {
         nodeToRemove->parent->right = nullptr;
       } else {
@@ -98,8 +122,8 @@ void AVL::remove(int key) {
   } else if (leftChild == nullptr || rightChild == nullptr) {
     log("one child\n");
     // node has one child
-    Node* child = leftChild ? leftChild : rightChild;
-    if (comparator(nodeToRemove->data, nodeToRemove->parent->data) ==
+    Node<KeyType, ValueType>* child = leftChild ? leftChild : rightChild;
+    if (comparator(nodeToRemove->key, nodeToRemove->parent->key) ==
         AVL_GREATER) {
       nodeToRemove->parent->right = child;
     } else {
@@ -110,26 +134,25 @@ void AVL::remove(int key) {
     delete nodeToRemove;
   } else {
     // node has two children
-    Node* replacement = nodeToRemove->hl < nodeToRemove->hr
-                            ? maximumNode(leftChild)
-                            : minimumNode(rightChild);
+    Node<KeyType, ValueType>* replacement = nodeToRemove->hl < nodeToRemove->hr
+                                                ? maximumNode(leftChild)
+                                                : minimumNode(rightChild);
 
-    log("node to delete: %d\n", nodeToRemove->data);
+    log("node to delete: %d\n", nodeToRemove->key);
     log("node to delete left: %d\n",
-        nodeToRemove->left ? nodeToRemove->left->data : -1);
+        nodeToRemove->left ? nodeToRemove->left->key : -1);
     log("node to delete right: %d\n",
-        nodeToRemove->right ? nodeToRemove->right->data : -1);
+        nodeToRemove->right ? nodeToRemove->right->key : -1);
     log("node to delete parent: %d\n",
-        nodeToRemove->parent ? nodeToRemove->parent->data : -1);
-    log("replacement: %d\n", replacement->data);
+        nodeToRemove->parent ? nodeToRemove->parent->key : -1);
+    log("replacement: %d\n", replacement->key);
     log("replacement parent: %d\n",
-        replacement->parent ? replacement->parent->data : -1);
+        replacement->parent ? replacement->parent->key : -1);
     log("replacement parent left: %d\n",
-        replacement->parent->left ? replacement->parent->left->data : -1);
+        replacement->parent->left ? replacement->parent->left->key : -1);
     log("replacement parent right: %d\n",
-        replacement->parent->right ? replacement->parent->right->data : -1);
-    if (comparator(replacement->data, replacement->parent->data) ==
-        AVL_GREATER) {
+        replacement->parent->right ? replacement->parent->right->key : -1);
+    if (comparator(replacement->key, replacement->parent->key) == AVL_GREATER) {
       if (replacement->left) {
         replacement->parent->right = replacement->left;
         replacement->left->parent = replacement->parent;
@@ -144,67 +167,87 @@ void AVL::remove(int key) {
         replacement->parent->left = nullptr;
       }
     }
-    nodeToRemove->data = replacement->data;
+    nodeToRemove->key = replacement->key;
     fixup(replacement->parent);
     delete replacement;
   }
 }
 
-int AVL::predecessor(int key) const {
-  Node* foundNode = findNode(key, root);
+template <typename KeyType, typename ValueType>
+std::tuple<const KeyType*, const ValueType*>
+AVL<KeyType, ValueType>::predecessor(const KeyType& key) const {
+  Node<KeyType, ValueType>* foundNode = findNode(key, root);
   if (foundNode) {
     if (foundNode->left) {
-      return maximumNode(foundNode->left)->data;
+      return maximumNode(foundNode->left)->key;
     } else {
-      Node* predecessor = predecessorUp(foundNode);
-      return predecessor != nullptr ? predecessor->data : NOT_FOUND;
+      Node<KeyType, ValueType>* predecessor = predecessorUp(foundNode);
+      return {predecessor != nullptr ? &predecessor->key : nullptr,
+              predecessor != nullptr ? &predecessor->value : nullptr};
     }
   } else {
-    return NOT_FOUND;
+    return {nullptr, nullptr};
   }
 }
 
-int AVL::successor(int key) const {
-  Node* foundNode = findNode(key, root);  // O(lg n)
+template <typename KeyType, typename ValueType>
+std::tuple<const KeyType*, const ValueType*> AVL<KeyType, ValueType>::successor(
+    const KeyType& key) const {
+  Node<KeyType, ValueType>* foundNode = findNode(key, root);  // O(lg n)
   if (foundNode) {
     if (foundNode->right) {
-      return minimumNode(foundNode->right)->data;  // O(lg n)
+      return minimumNode(foundNode->right)->key;  // O(lg n)
     } else {
-      Node* successor = successorUp(foundNode);  // O(lg n)
-      return successor != nullptr ? successor->data : NOT_FOUND;
+      Node<KeyType, ValueType>* successor = successorUp(foundNode);  // O(lg n)
+      return {successor != nullptr ? &successor->key : nullptr,
+              successor != nullptr ? &successor->value : nullptr};
     }
   } else {
-    return NOT_FOUND;
+    return {nullptr, nullptr};
   }
 }
 
-int AVL::findKey(int key) const {
-  Node* foundNode = findNode(key, root);
+template <typename KeyType, typename ValueType>
+const KeyType* AVL<KeyType, ValueType>::findKey(const KeyType& key) const {
+  Node<KeyType, ValueType>* foundNode = findNode(key, root);
   if (foundNode) {
-    return foundNode->data;
+    return &foundNode->key;
   } else {
     return NOT_FOUND;
   }
 }
 
-int AVL::iterativeFindKey(int key) const {
-  Node* current = root;
+template <typename KeyType, typename ValueType>
+const ValueType* AVL<KeyType, ValueType>::find(const KeyType& key) const {
+  Node<KeyType, ValueType>* foundNode = findNode(key, root);
+  if (foundNode) {
+    return &foundNode->value;
+  } else {
+    return nullptr;
+  }
+}
+
+template <typename KeyType, typename ValueType>
+const KeyType* AVL<KeyType, ValueType>::iterativeFindKey(
+    const KeyType& key) const {
+  Node<KeyType, ValueType>* current = root;
   while (current) {
-    int comp = comparator(key, current->data);
+    int comp = comparator(key, current->key);
     if (comp == AVL_EQUAL) {
-      return key;
+      return &current->key;
     }
     if (comp == AVL_GREATER)
       current = current->right;
     else
       current = current->left;
   }
-  return NOT_FOUND;
+  return nullptr;
 }
 
-void AVL::fixup(Node* _root) {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::fixup(Node<KeyType, ValueType>* _root) {
   while (_root != nullptr) {
-    Node* nextParent = _root->parent;
+    Node<KeyType, ValueType>* nextParent = _root->parent;
     _root->hl = getHeight(_root->left);
     _root->hr = getHeight(_root->right);
     int balanceFactor = _root->hl - _root->hr;
@@ -236,22 +279,28 @@ void AVL::fixup(Node* _root) {
   }
 }
 
-Node* AVL::minimumNode(Node* _root) const {
+template <typename KeyType, typename ValueType>
+Node<KeyType, ValueType>* AVL<KeyType, ValueType>::minimumNode(
+    Node<KeyType, ValueType>* _root) const {
   while (_root->left != nullptr) {
     _root = _root->left;
   }
   return _root;
 }
 
-Node* AVL::maximumNode(Node* _root) const {
+template <typename KeyType, typename ValueType>
+Node<KeyType, ValueType>* AVL<KeyType, ValueType>::maximumNode(
+    Node<KeyType, ValueType>* _root) const {
   while (_root->right != nullptr) {
     _root = _root->right;
   }
   return _root;
 }
 
-Node* AVL::successorUp(Node* _root) const {
-  Node* y = _root->parent;
+template <typename KeyType, typename ValueType>
+Node<KeyType, ValueType>* AVL<KeyType, ValueType>::successorUp(
+    Node<KeyType, ValueType>* _root) const {
+  Node<KeyType, ValueType>* y = _root->parent;
   while (y != nullptr && _root == y->right) {
     _root = y;
     y = y->parent;
@@ -259,8 +308,10 @@ Node* AVL::successorUp(Node* _root) const {
   return y;
 }
 
-Node* AVL::predecessorUp(Node* _root) const {
-  Node* y = _root->parent;
+template <typename KeyType, typename ValueType>
+Node<KeyType, ValueType>* AVL<KeyType, ValueType>::predecessorUp(
+    Node<KeyType, ValueType>* _root) const {
+  Node<KeyType, ValueType>* y = _root->parent;
   while (y != nullptr && _root == y->left) {
     _root = y;
     y = y->parent;
@@ -268,11 +319,14 @@ Node* AVL::predecessorUp(Node* _root) const {
   return y;
 }
 
-Node* AVL::findNode(int key, Node* _root) const {
+template <typename KeyType, typename ValueType>
+Node<KeyType, ValueType>* AVL<KeyType, ValueType>::findNode(
+    const KeyType& key,
+    Node<KeyType, ValueType>* _root) const {
   if (_root == nullptr) {
     return nullptr;
   }
-  int comp = comparator(key, _root->data);
+  int comp = comparator(key, _root->key);
   if (comp == AVL_GREATER) {
     return findNode(key, _root->right);
   } else if (comp == AVL_LESS) {
@@ -282,49 +336,56 @@ Node* AVL::findNode(int key, Node* _root) const {
   }
 }
 
-int AVL::maxSumPath(Node* _root) const {
-  AVL::response res = maxSumPathRecursive(_root);
-  return std::max({res.maxSumPathForThisNode, res.maxSumPathToLeave,
-                   res.maxMaxSumPathOfSubtrees});
-}
+// template <typename KeyType, typename ValueType>
+// int AVL::maxSumPath(Node<KeyType, ValueType>* _root) const {
+//   AVL::response res = maxSumPathRecursive(_root);
+//   return std::max({res.maxSumPathForThisNode, res.maxSumPathToLeave,
+//                    res.maxMaxSumPathOfSubtrees});
+// }
 
 // TODO cual es el key de T
-AVL::response AVL::maxSumPathRecursive(Node* _root) const {
-  if (_root == nullptr) {
-    response res = {0, 0, 0};
-    return res;
-  }
-  response l = maxSumPathRecursive(_root->left);
-  response r = maxSumPathRecursive(_root->right);
+// AVL::response AVL::maxSumPathRecursive(Node<KeyType, ValueType>* _root) const
+// {
+//   if (_root == nullptr) {
+//     response res = {0, 0, 0};
+//     return res;
+//   }
+//   response l = maxSumPathRecursive(_root->left);
+//   response r = maxSumPathRecursive(_root->right);
 
-  response res;
-  res.maxSumPathForThisNode =
-      l.maxSumPathToLeave + r.maxSumPathToLeave + _root->data;
-  res.maxSumPathToLeave =
-      std::max({l.maxSumPathToLeave, r.maxSumPathToLeave}) + _root->data;
-  res.maxMaxSumPathOfSubtrees =
-      std::max({l.maxSumPathForThisNode, r.maxSumPathForThisNode});
-  return res;
-}
+//   response res;
+//   res.maxSumPathForThisNode =
+//       l.maxSumPathToLeave + r.maxSumPathToLeave + _root->key;
+//   res.maxSumPathToLeave =
+//       std::max({l.maxSumPathToLeave, r.maxSumPathToLeave}) + _root->key;
+//   res.maxMaxSumPathOfSubtrees =
+//       std::max({l.maxSumPathForThisNode, r.maxSumPathForThisNode});
+//   return res;
+// }
 
-void AVL::inorderTraversal(Node* _root,
-                           const std::function<void(int)>& process) const {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::inorderTraversal(
+    Node<KeyType, ValueType>* _root,
+    const std::function<void(const KeyType&, const ValueType&)>& process)
+    const {
   if (_root == nullptr) {
     return;
   }
   inorderTraversal(_root->left, process);
-  process(_root->data);
+  process(_root->key);
   inorderTraversal(_root->right, process);
 }
 
-void AVL::leftRotation(Node* x, Node* y) {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::leftRotation(Node<KeyType, ValueType>* x,
+                                           Node<KeyType, ValueType>* y) {
   if (y->left) {
     y->left->parent = x;
   }
   x->right = y->left;
   if (x->parent == nullptr) {
     root = y;
-  } else if (comparator(x->data, x->parent->data) == AVL_LESS) {
+  } else if (comparator(x->key, x->parent->key) == AVL_LESS) {
     x->parent->left = y;
   } else {
     x->parent->right = y;
@@ -337,14 +398,16 @@ void AVL::leftRotation(Node* x, Node* y) {
   y->hl = getHeight(y->left);
 }
 
-void AVL::rightRotation(Node* x, Node* y) {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::rightRotation(Node<KeyType, ValueType>* x,
+                                            Node<KeyType, ValueType>* y) {
   if (y->right) {
     y->right->parent = x;
   }
   x->left = y->right;
   if (x->parent == nullptr) {
     root = y;
-  } else if (comparator(x->data, x->parent->data) == AVL_GREATER) {
+  } else if (comparator(x->key, x->parent->key) == AVL_GREATER) {
     x->parent->right = y;
   } else {
     x->parent->left = y;
@@ -357,15 +420,17 @@ void AVL::rightRotation(Node* x, Node* y) {
   y->hr = getHeight(y->right);
 }
 
-void AVL::insertRecursive(Node* current, int data) {
-  int comp = comparator(data, current->data);
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::insertRecursive(Node<KeyType, ValueType>* current,
+                                              const KeyType& key) {
+  int comp = comparator(key, current->key);
   if (comp == AVL_GREATER) {
     if (current->right == nullptr) {
-      current->right = new Node(data);
+      current->right = new Node<KeyType, ValueType>(key);
       current->right->parent = current;
       current->hr = getHeight(current->right);
     } else {
-      insertRecursive(current->right, data);
+      insertRecursive(current->right, key);
       current->hr = getHeight(current->right);
       int balanceFactor = current->hl - current->hr;
       if (balanceFactor < -1) {
@@ -382,11 +447,11 @@ void AVL::insertRecursive(Node* current, int data) {
     }
   } else if (comp == AVL_LESS) {
     if (current->left == nullptr) {
-      current->left = new Node(data);
+      current->left = new Node<KeyType, ValueType>(key);
       current->left->parent = current;
       current->hl = getHeight(current->left);
     } else {
-      insertRecursive(current->left, data);
+      insertRecursive(current->left, key);
       current->hl = getHeight(current->left);
       int balanceFactor = current->hl - current->hr;
       if (balanceFactor > 1) {
@@ -407,7 +472,9 @@ void AVL::insertRecursive(Node* current, int data) {
   }
 }
 
-inline int AVL::getHeight(Node* node) const {
+template <typename KeyType, typename ValueType>
+inline int AVL<KeyType, ValueType>::getHeight(
+    Node<KeyType, ValueType>* node) const {
   if (node == nullptr) {
     return 0;
   } else {
@@ -415,7 +482,8 @@ inline int AVL::getHeight(Node* node) const {
   }
 }
 
-void AVL::clear(Node* _root) {
+template <typename KeyType, typename ValueType>
+void AVL<KeyType, ValueType>::clear(Node<KeyType, ValueType>* _root) {
   if (_root == nullptr) {
     return;
   } else {
@@ -425,6 +493,7 @@ void AVL::clear(Node* _root) {
   }
 }
 
-AVL::~AVL() noexcept {
+template <typename KeyType, typename ValueType>
+AVL<KeyType, ValueType>::~AVL() noexcept {
   clear(root);
 }
