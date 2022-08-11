@@ -4,8 +4,6 @@
 
 #include "helpers.hpp"
 
-#define NOT_FOUND INT32_MIN
-
 // TODO: copy constructible
 template <typename KeyType, typename ValueType>
 struct Node {
@@ -46,8 +44,8 @@ class AVL {
   int getRoot() const;
   void insert(const KeyType& key, const ValueType& value);
   void iterativeInsert(const KeyType& key, const ValueType& value);
-  std::tuple<KeyType, ValueType> maximum() const;
-  std::tuple<KeyType, ValueType> minimum() const;
+  std::tuple<const KeyType*, const ValueType*> maximum() const;
+  std::tuple<const KeyType*, const ValueType*> minimum() const;
   void inorder(const std::function<void(const KeyType&, const ValueType&)>&
                    process) const;
   std::string inorderString() const;
@@ -158,7 +156,8 @@ void AVL<KeyType, ValueType>::iterativeInsert(const KeyType& key,
 }
 
 template <typename KeyType, typename ValueType>
-std::tuple<KeyType, ValueType> AVL<KeyType, ValueType>::maximum() const {
+std::tuple<const KeyType*, const ValueType*> AVL<KeyType, ValueType>::maximum()
+    const {
   Node<KeyType, ValueType> node = maximumNode(root);
   if (node) {
     return {node->key, node->value};
@@ -168,7 +167,8 @@ std::tuple<KeyType, ValueType> AVL<KeyType, ValueType>::maximum() const {
 }
 
 template <typename KeyType, typename ValueType>
-std::tuple<KeyType, ValueType> AVL<KeyType, ValueType>::minimum() const {
+std::tuple<const KeyType*, const ValueType*> AVL<KeyType, ValueType>::minimum()
+    const {
   Node<KeyType, ValueType> node = minimumNode(root);
   if (node) {
     return {node->key, node->value};
