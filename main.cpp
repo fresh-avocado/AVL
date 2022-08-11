@@ -8,7 +8,7 @@
 #define NODE_COUNT 100000
 
 int main(void) {
-  AVL* avl = new AVL([](int a, int b) {
+  auto* avl = new AVL<int, std::string>([](int a, int b) {
     if (a == b)
       return 0;
     if (a < b)
@@ -17,7 +17,7 @@ int main(void) {
       return 1;
   });
 
-  AVL* avl2 = new AVL([](int a, int b) {
+  auto* avl2 = new AVL<int, std::string>([](int a, int b) {
     if (a == b)
       return 0;
     if (a < b)
@@ -30,7 +30,7 @@ int main(void) {
   // TODO: ¿por qué el iterative es más lento?
   measureTime([&avl]() {
     for (int i = 0; i <= NODE_COUNT; i += 2) {
-      avl->iterativeInsert(i);
+      avl->iterativeInsert(i, "bruh " + std::to_string(i));
     }
   });
 
@@ -38,7 +38,7 @@ int main(void) {
 
   measureTime([&avl2]() {
     for (int i = 0; i <= NODE_COUNT; i += 2) {
-      avl2->insert(i);
+      avl2->insert(i, "bruh " + std::to_string(i));
     }
   });
 
@@ -47,19 +47,21 @@ int main(void) {
 
   measureTime([&avl, &svec]() {
     for (auto s : svec) {
-      assert(avl->iterativeFindKey(s) == s);
+      auto* foundKey = avl->iterativeFindKey(s);
+      assert(foundKey && *foundKey == s);
     }
   });
 
   measureTime([&avl, &svec]() {
     for (auto s : svec) {
-      assert(avl->findKey(s) == s);
+      auto* foundKey = avl->findKey(s);
+      assert(foundKey && *foundKey == s);
     }
   });
 
   for (auto s : svec) {
     avl->remove(s);
-    assert(avl->findKey(s) == NOT_FOUND);
+    assert(avl->findKey(s) == nullptr);
     std::string avlStr = avl->inorderString();
     assert(isMonotonicallyIncreasing(splitOnSpaces(avlStr)) == 1);
   }
