@@ -8,8 +8,8 @@ prod: main.o avl.o helpers.o
 main.o: main.cpp
 	$(CPP) $(CPPFLAGS) -c main.cpp -o main.o
 
-avl.o: avl.hpp
-	$(CPP) $(CPPFLAGS) -c avl.hpp -o avl.o
+avl.o: avl.cpp
+	$(CPP) $(CPPFLAGS) -c avl.cpp -o avl.o
 
 helpers.o: helpers.hpp helpers.cpp
 	$(CPP) $(CPPFLAGS) -c helpers.cpp -o helpers.o
@@ -20,8 +20,8 @@ debug: main.debug.o avl.debug.o helpers.debug.o
 main.debug.o: main.cpp
 	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) -c main.cpp -o main.debug.o
 
-avl.debug.o: avl.hpp
-	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) -c avl.hpp -o avl.debug.o
+avl.debug.o: avl.cpp
+	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) -c avl.cpp -o avl.debug.o
 
 helpers.debug.o: helpers.hpp helpers.cpp
 	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) -c helpers.cpp -o helpers.debug.o

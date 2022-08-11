@@ -3,12 +3,12 @@
 #include <iostream>
 #include <vector>
 
-#include "avl.hpp"
+#include "avl.cpp"
 
 #define NODE_COUNT 100000
 
 int main(void) {
-  auto* avl = new AVL<int, std::string>([](int a, int b) {
+  AVL<int, std::string>* avl = new AVL<int, std::string>([](int a, int b) {
     if (a == b)
       return 0;
     if (a < b)
@@ -17,7 +17,7 @@ int main(void) {
       return 1;
   });
 
-  auto* avl2 = new AVL<int, std::string>([](int a, int b) {
+  AVL<int, std::string>* avl2 = new AVL<int, std::string>([](int a, int b) {
     if (a == b)
       return 0;
     if (a < b)
