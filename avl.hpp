@@ -2,14 +2,9 @@
 #include <functional>
 #include <iostream>
 
-#define NOT_FOUND INT32_MIN
+#include "helpers.hpp"
 
-// TODO: un logger simple que tenga ERROR, WARN, INFO, un timestamp
-#ifdef DEBUG
-#define log(...) printf(__VA_ARGS__)
-#else
-#define log(...)
-#endif
+#define NOT_FOUND INT32_MIN
 
 struct Node {
   int data;
@@ -20,7 +15,7 @@ struct Node {
   int hr;
 
   // TODO: move constructor en data{data}
-  Node(int data)
+  explicit Node(int data)
       : data{data},
         left{nullptr},
         right{nullptr},
@@ -29,11 +24,9 @@ struct Node {
         hr{0} {}
 };
 
-// TODO: poner los TODOs de abajo en un issue
 // TODO: templatizar
 // TODO: is copy constructible type trait O MOVE CONSTRUCTIBLE?
 // TODO: T key, U data
-// TODO: un lambda que retorne un valor específico dado un U
 // TODO: testing exhaustivo
 // TODO: crear una clase extra que sea Map o Hash que use el AVL por debajo
 // TODO: ver integrar dicha ED con Node.js
@@ -43,13 +36,13 @@ class AVL {
 
  public:
   // Recibe un lambda que toma dos elementos `a` y `b` como
-  // parámetro y retorna 0 si `a == b`, -1 si `a < b` y
-  // 1 si `a > b`
-  AVL(const std::function<int(int, int)>&);
+  // parámetro y retorna -1 si `a < b`, 1 si `a > b` y 0 si `a == b`.
+  // Si no se cumple esta regla, el comportamiento del AVL es indefinido.
+  explicit AVL(const std::function<int(int, int)>&);
   int getHeight() const;
   int getRoot() const;
   void insert(int data);
-  void fastInsert(int data);
+  void iterativeInsert(int data);
   int maximum() const;
   int minimum() const;
   void inorder(const std::function<void(int)>& process) const;
@@ -59,6 +52,7 @@ class AVL {
   int predecessor(int key) const;
   int successor(int key) const;
   int findKey(int key) const;
+  int iterativeFindKey(int key) const;
   ~AVL() noexcept;
 
  private:

@@ -1,6 +1,9 @@
 #include "avl.hpp"
 
-// TODO: usar el comparator
+#define AVL_GREATER 1
+#define AVL_LESS -1
+#define AVL_EQUAL 0
+
 AVL::AVL(const std::function<int(int, int)>& comparator)
     : root{nullptr}, comparator{comparator} {}
 
@@ -20,34 +23,31 @@ void AVL::insert(int data) {
   }
 }
 
-void AVL::fastInsert(int data) {
+void AVL::iterativeInsert(int data) {
   if (root == nullptr) {
     root = new Node(data);
   } else {
-    Node* parent = root;
+    Node* parent = nullptr;
     Node* current = root;
-    while (true) {
+    while (current) {
       parent = current;
-      if (data > current->data) {
+      int comp = comparator(data, current->data);
+      if (comp == AVL_GREATER) {
         current = current->right;
-        if (current == nullptr) {
-          parent->right = new Node(data);
-          parent->right->parent = parent;
-          fixup(parent);
-          return;
-        }
-      } else if (data < current->data) {
+      } else if (comp == AVL_LESS) {
         current = current->left;
-        if (current == nullptr) {
-          parent->left = new Node(data);
-          parent->left->parent = parent;
-          fixup(parent);
-          return;
-        }
       } else {
         throw "duplicate key";
       }
     }
+    if (comparator(data, parent->data) == AVL_GREATER) {
+      parent->right = new Node(data);
+      parent->right->parent = parent;
+    } else {
+      parent->left = new Node(data);
+      parent->left->parent = parent;
+    }
+    fixup(parent);
   }
 }
 
@@ -83,11 +83,11 @@ void AVL::remove(int key) {
   if (leftChild == nullptr && rightChild == nullptr) {
     log("no child\n");
     // node has no children
-    // TODO aca
     if (nodeToRemove->parent == nullptr) {
       root = nullptr;
     } else {
-      if (nodeToRemove->data > nodeToRemove->parent->data) {
+      if (comparator(nodeToRemove->data, nodeToRemove->parent->data) ==
+          AVL_GREATER) {
         nodeToRemove->parent->right = nullptr;
       } else {
         nodeToRemove->parent->left = nullptr;
@@ -99,8 +99,8 @@ void AVL::remove(int key) {
     log("one child\n");
     // node has one child
     Node* child = leftChild ? leftChild : rightChild;
-    // TODO aca
-    if (nodeToRemove->data > nodeToRemove->parent->data) {
+    if (comparator(nodeToRemove->data, nodeToRemove->parent->data) ==
+        AVL_GREATER) {
       nodeToRemove->parent->right = child;
     } else {
       nodeToRemove->parent->left = child;
@@ -128,39 +128,24 @@ void AVL::remove(int key) {
         replacement->parent->left ? replacement->parent->left->data : -1);
     log("replacement parent right: %d\n",
         replacement->parent->right ? replacement->parent->right->data : -1);
-
-    // TODO aca
-    if (replacement->data > replacement->parent->data) {
-      log("1\n");
+    if (comparator(replacement->data, replacement->parent->data) ==
+        AVL_GREATER) {
       if (replacement->left) {
-        log("2\n");
         replacement->parent->right = replacement->left;
         replacement->left->parent = replacement->parent;
-        log("3\n");
       } else {
-        log("6\n");
         replacement->parent->right = nullptr;
-        log("7\n");
       }
     } else {
-      log("8\n");
       if (replacement->right) {
-        log("11\n");
         replacement->parent->left = replacement->right;
         replacement->right->parent = replacement->parent;
-        log("12\n");
       } else {
-        log("13\n");
         replacement->parent->left = nullptr;
-        log("14\n");
       }
     }
-    log("15\n");
     nodeToRemove->data = replacement->data;
-    log("16\n");
-    log("bf: %d\n", replacement->parent->hl - replacement->parent->hr);
     fixup(replacement->parent);
-    log("17\n");
     delete replacement;
   }
 }
@@ -202,6 +187,21 @@ int AVL::findKey(int key) const {
   }
 }
 
+int AVL::iterativeFindKey(int key) const {
+  Node* current = root;
+  while (current) {
+    int comp = comparator(key, current->data);
+    if (comp == AVL_EQUAL) {
+      return key;
+    }
+    if (comp == AVL_GREATER)
+      current = current->right;
+    else
+      current = current->left;
+  }
+  return NOT_FOUND;
+}
+
 void AVL::fixup(Node* _root) {
   while (_root != nullptr) {
     Node* nextParent = _root->parent;
@@ -238,10 +238,8 @@ void AVL::fixup(Node* _root) {
 
 Node* AVL::minimumNode(Node* _root) const {
   while (_root->left != nullptr) {
-    log("%d traversing...\n", _root->data);
     _root = _root->left;
   }
-  log("%d found...\n", _root->data);
   return _root;
 }
 
@@ -270,15 +268,14 @@ Node* AVL::predecessorUp(Node* _root) const {
   return y;
 }
 
-// FIXME: iterativo para q use menos memoria y sea más rápido
 Node* AVL::findNode(int key, Node* _root) const {
   if (_root == nullptr) {
     return nullptr;
   }
-  // TODO aca
-  if (key > _root->data) {
+  int comp = comparator(key, _root->data);
+  if (comp == AVL_GREATER) {
     return findNode(key, _root->right);
-  } else if (key < _root->data) {
+  } else if (comp == AVL_LESS) {
     return findNode(key, _root->left);
   } else {
     return _root;
@@ -321,14 +318,13 @@ void AVL::inorderTraversal(Node* _root,
 }
 
 void AVL::leftRotation(Node* x, Node* y) {
-  // TODO aca
   if (y->left) {
     y->left->parent = x;
   }
   x->right = y->left;
   if (x->parent == nullptr) {
     root = y;
-  } else if (x->data < x->parent->data) {
+  } else if (comparator(x->data, x->parent->data) == AVL_LESS) {
     x->parent->left = y;
   } else {
     x->parent->right = y;
@@ -342,14 +338,13 @@ void AVL::leftRotation(Node* x, Node* y) {
 }
 
 void AVL::rightRotation(Node* x, Node* y) {
-  // TODO aca
   if (y->right) {
     y->right->parent = x;
   }
   x->left = y->right;
   if (x->parent == nullptr) {
     root = y;
-  } else if (x->data > x->parent->data) {
+  } else if (comparator(x->data, x->parent->data) == AVL_GREATER) {
     x->parent->right = y;
   } else {
     x->parent->left = y;
@@ -363,8 +358,8 @@ void AVL::rightRotation(Node* x, Node* y) {
 }
 
 void AVL::insertRecursive(Node* current, int data) {
-  // TODO aca
-  if (data > current->data) {
+  int comp = comparator(data, current->data);
+  if (comp == AVL_GREATER) {
     if (current->right == nullptr) {
       current->right = new Node(data);
       current->right->parent = current;
@@ -385,7 +380,7 @@ void AVL::insertRecursive(Node* current, int data) {
         }
       }
     }
-  } else if (data < current->data) {
+  } else if (comp == AVL_LESS) {
     if (current->left == nullptr) {
       current->left = new Node(data);
       current->left->parent = current;
