@@ -3,7 +3,8 @@
 #include <iostream>
 #include <vector>
 
-#include "avl.cpp"
+#include "../src/avl/avl.cpp"
+#include "../src/utils/helpers.hpp"
 
 #define NODE_COUNT 100000
 
@@ -60,6 +61,7 @@ int main(void) {
   });
 
   for (auto s : svec) {
+    assert(*avl->find(s) == "bruh " + std::to_string(s));
     avl->remove(s);
     assert(avl->findKey(s) == nullptr);
     std::string avlStr = avl->inorderString();
@@ -68,6 +70,8 @@ int main(void) {
 
   delete avl;
   delete avl2;
+
+  log("\033[32mAll tests passed!\033[0m\n");
 
   return 0;
 }
