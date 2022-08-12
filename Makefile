@@ -4,7 +4,7 @@ DEBUGFLAGS = -DDEBUG
 VPATH = ./src:./src/avl:./src/utils:./tests
 
 prod: main.o avl.o helpers.o
-	$(CPP) $(CPPFLAGS) main.o avl.o helpers.o -o avl
+	$(CPP) $(CPPFLAGS) main.o avl.o helpers.o -o avlprod
 
 main.o: main.cpp
 	$(CPP) $(CPPFLAGS) -c ./src/main.cpp -o main.o
@@ -16,7 +16,7 @@ helpers.o: helpers.hpp helpers.cpp
 	$(CPP) $(CPPFLAGS) -c ./src/utils/helpers.cpp -o helpers.o
 
 debug: main.debug.o avl.debug.o helpers.debug.o
-	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) main.debug.o avl.debug.o helpers.debug.o -o avl
+	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) main.debug.o avl.debug.o helpers.debug.o -o avldebug
 
 main.debug.o: main.cpp
 	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) -c ./src/main.cpp -o main.debug.o
@@ -34,4 +34,4 @@ tests.o: tests.cpp
 	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) -c ./tests/tests.cpp -o tests.o
 
 clean:
-	rm *.o avl avltest
+	rm *.o avl avltest avlprod avldebug

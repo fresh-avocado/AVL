@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-// TODO: un logger simple que tenga ERROR, WARN, INFO, un timestamp
 #ifdef DEBUG
 #define log(...) printf(__VA_ARGS__)
 #else
