@@ -1,12 +1,15 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <type_traits>
 
-template <typename T>
-concept CopyConstructible = std::is_copy_constructible<T>::value;
+#include "../utils/helpers.hpp"
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <typename T>
+concept MoveAssignable = std::is_move_assignable<T>::value;
+
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 struct Node {
   KeyType key;
   ValueType value;
@@ -28,7 +31,7 @@ struct Node {
 
 // TODO: crear una clase extra que sea Map o Hash que use el AVL por debajo
 // TODO: ver integrar dicha ED con Node.js
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 class AVL {
   Node<KeyType, ValueType>* root;
   std::function<int(const KeyType&, const KeyType&)> comparator;
@@ -37,68 +40,82 @@ class AVL {
   // Recibe un lambda que toma dos elementos `a` y `b` como
   // parámetro y retorna -1 si `a < b`, 1 si `a > b` y 0 si `a == b`.
   // Si no se cumple esta regla, el comportamiento del AVL es indefinido.
-  explicit AVL(const std::function<int(const KeyType&, const KeyType&)>&);
-  int getHeight() const;
-  int getRoot() const;
-  void insert(const KeyType& key, const ValueType& value);
-  void iterativeInsert(const KeyType& key, const ValueType& value);
-  std::tuple<const KeyType*, const ValueType*> maximum() const;
-  std::tuple<const KeyType*, const ValueType*> minimum() const;
-  void inorder(const std::function<void(const KeyType&, const ValueType&)>&
-                   process) const;
-  std::string inorderString() const;
-  void remove(const KeyType& key);
-  std::tuple<const KeyType*, const ValueType*> predecessor(
-      const KeyType& key) const;
-  std::tuple<const KeyType*, const ValueType*> successor(
-      const KeyType& key) const;
-  const ValueType* find(const KeyType& key) const;
-  const KeyType* findKey(const KeyType& key) const;
-  const KeyType* iterativeFindKey(const KeyType& key) const;
+  explicit AVL(
+      const std::function<int(const KeyType&, const KeyType&)>& comparator);
+  AVL(const AVL&) = delete;                     // copy constructor
+  auto operator=(const AVL&) -> AVL& = delete;  // copy assignment operator
+  AVL(AVL&&) = delete;                          // move constructor
+  auto operator=(AVL&&) -> AVL& = delete;       // move assignment operator
+  [[nodiscard]] inline auto getHeight() const -> int;
+  [[nodiscard]] auto getRoot() const -> std::optional<KeyType>;
+  auto insert(const KeyType& key, const ValueType& value) -> void;
+  auto iterativeInsert(const KeyType& key, const ValueType& value) -> void;
+  auto maximum() const -> std::optional<std::tuple<KeyType, ValueType>>;
+  auto minimum() const -> std::optional<std::tuple<KeyType, ValueType>>;
+  auto inorder(const std::function<void(const KeyType&, const ValueType&)>&
+                   process) const -> void;
+  [[nodiscard]] auto inorderString() const -> std::string;
+  auto remove(const KeyType& key) -> void;
+  auto predecessor(const KeyType& key) const
+      -> std::optional<std::tuple<KeyType, ValueType>>;
+  auto successor(const KeyType& key) const
+      -> std::optional<std::tuple<KeyType, ValueType>>;
+  auto find(const KeyType& key) const -> std::optional<ValueType>;
+  auto findKey(const KeyType& key) const -> std::optional<KeyType>;
+  auto iterativeFindKey(const KeyType& key) const -> std::optional<KeyType>;
   ~AVL() noexcept;
 
  private:
-  void fixup(Node<KeyType, ValueType>* _root);
-  Node<KeyType, ValueType>* minimumNode(Node<KeyType, ValueType>* _root) const;
-  Node<KeyType, ValueType>* maximumNode(Node<KeyType, ValueType>* _root) const;
-  Node<KeyType, ValueType>* successorUp(Node<KeyType, ValueType>* _root) const;
-  Node<KeyType, ValueType>* predecessorUp(
-      Node<KeyType, ValueType>* _root) const;
-  Node<KeyType, ValueType>* findNode(const KeyType& key,
-                                     Node<KeyType, ValueType>* _root) const;
-  void inorderTraversal(
+  auto fixup(Node<KeyType, ValueType>* _root) -> void;
+  auto minimumNode(Node<KeyType, ValueType>* _root) const
+      -> Node<KeyType, ValueType>*;
+  auto maximumNode(Node<KeyType, ValueType>* _root) const
+      -> Node<KeyType, ValueType>*;
+  auto successorUp(Node<KeyType, ValueType>* _root) const
+      -> Node<KeyType, ValueType>*;
+  auto predecessorUp(Node<KeyType, ValueType>* _root) const
+      -> Node<KeyType, ValueType>*;
+  auto findNode(const KeyType& key, Node<KeyType, ValueType>* _root) const
+      -> Node<KeyType, ValueType>*;
+  auto inorderTraversal(
       Node<KeyType, ValueType>* _root,
       const std::function<void(const KeyType&, const ValueType&)>& process)
-      const;
-  void leftRotation(Node<KeyType, ValueType>* x, Node<KeyType, ValueType>* y);
-  void rightRotation(Node<KeyType, ValueType>* x, Node<KeyType, ValueType>* y);
-  void insertRecursive(Node<KeyType, ValueType>* current,
+      const -> void;
+  auto leftRotation(Node<KeyType, ValueType>* x, Node<KeyType, ValueType>* y)
+      -> void;
+  auto rightRotation(Node<KeyType, ValueType>* x, Node<KeyType, ValueType>* y)
+      -> void;
+  auto insertRecursive(Node<KeyType, ValueType>* current,
                        const KeyType& key,
-                       const ValueType& value);
-  inline int getHeight(Node<KeyType, ValueType>* node) const;
-  void clear(Node<KeyType, ValueType>* _root);
+                       const ValueType& value) -> void;
+  inline auto getHeight(Node<KeyType, ValueType>* node) const -> int;
+  auto clear(Node<KeyType, ValueType>* _root) -> void;
 };
 
-#define AVL_GREATER 1
-#define AVL_LESS -1
-#define AVL_EQUAL 0
+const int AVL_GREATER = 1;
+const int AVL_LESS = -1;
+const int AVL_EQUAL = 0;
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 AVL<KeyType, ValueType>::AVL(
     const std::function<int(const KeyType&, const KeyType&)>& comparator)
     : root{nullptr}, comparator{comparator} {}
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-int AVL<KeyType, ValueType>::getHeight() const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+inline auto AVL<KeyType, ValueType>::getHeight() const -> int {
   return getHeight(root);
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-int AVL<KeyType, ValueType>::getRoot() const {
-  return root->key;
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::getRoot() const -> std::optional<KeyType> {
+  if (root) {
+    return root->key;
+  } else {
+    return {};
+  }
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 void AVL<KeyType, ValueType>::insert(const KeyType& key,
                                      const ValueType& value) {
   if (root == nullptr) {
@@ -108,7 +125,7 @@ void AVL<KeyType, ValueType>::insert(const KeyType& key,
   }
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 void AVL<KeyType, ValueType>::iterativeInsert(const KeyType& key,
                                               const ValueType& value) {
   if (root == nullptr) {
@@ -138,49 +155,48 @@ void AVL<KeyType, ValueType>::iterativeInsert(const KeyType& key,
   }
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-std::tuple<const KeyType*, const ValueType*> AVL<KeyType, ValueType>::maximum()
-    const {
-  Node<KeyType, ValueType> node = maximumNode(root);
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::maximum() const
+    -> std::optional<std::tuple<KeyType, ValueType>> {
+  Node<KeyType, ValueType>* node = maximumNode(root);
   if (node) {
-    return {node->key, node->value};
-  } else {
-    return {nullptr, nullptr};
+    return std::make_tuple(node->key, node->value);
   }
+  return {};
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-std::tuple<const KeyType*, const ValueType*> AVL<KeyType, ValueType>::minimum()
-    const {
-  Node<KeyType, ValueType> node = minimumNode(root);
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::minimum() const
+    -> std::optional<std::tuple<KeyType, ValueType>> {
+  Node<KeyType, ValueType>* node = minimumNode(root);
   if (node) {
-    return {node->key, node->value};
-  } else {
-    return {nullptr, nullptr};
+    return std::make_tuple(node->key, node->value);
   }
+  return {};
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-void AVL<KeyType, ValueType>::inorder(
-    const std::function<void(const KeyType&, const ValueType&)>& process)
-    const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::inorder(
+    const std::function<void(const KeyType&, const ValueType&)>& process) const
+    -> void {
   inorderTraversal(root, process);
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-std::string AVL<KeyType, ValueType>::inorderString() const {
-  std::string str = "";
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::inorderString() const -> std::string {
+  std::string str;
   inorderTraversal(root, [&str](const KeyType& key, const ValueType& value) {
     str += std::to_string(key) + " ";
   });
   return str;
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-void AVL<KeyType, ValueType>::remove(const KeyType& key) {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::remove(const KeyType& key) -> void {
   Node<KeyType, ValueType>* nodeToRemove = findNode(key, root);
-  if (nodeToRemove == nullptr)
+  if (nodeToRemove == nullptr) {
     return;
+  }
   Node<KeyType, ValueType>* leftChild = nodeToRemove->left;
   Node<KeyType, ValueType>* rightChild = nodeToRemove->right;
   if (leftChild == nullptr && rightChild == nullptr) {
@@ -229,86 +245,92 @@ void AVL<KeyType, ValueType>::remove(const KeyType& key) {
         replacement->parent->left = nullptr;
       }
     }
-    nodeToRemove->key = replacement->key;
-    nodeToRemove->value = replacement->value;
+    nodeToRemove->key = std::move(replacement->key);
+    nodeToRemove->value = std::move(replacement->value);
     fixup(replacement->parent);
     delete replacement;
   }
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-std::tuple<const KeyType*, const ValueType*>
-AVL<KeyType, ValueType>::predecessor(const KeyType& key) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::predecessor(const KeyType& key) const
+    -> std::optional<std::tuple<KeyType, ValueType>> {
   Node<KeyType, ValueType>* foundNode = findNode(key, root);
   if (foundNode) {
     if (foundNode->left) {
-      return maximumNode(foundNode->left)->key;
-    } else {
-      Node<KeyType, ValueType>* predecessor = predecessorUp(foundNode);
-      return {predecessor != nullptr ? &predecessor->key : nullptr,
-              predecessor != nullptr ? &predecessor->value : nullptr};
+      Node<KeyType, ValueType>* predecessor = maximumNode(foundNode->left);
+      return std::make_tuple(predecessor->key, predecessor->value);
     }
-  } else {
-    return {nullptr, nullptr};
+    Node<KeyType, ValueType>* predecessor = predecessorUp(foundNode);
+    if (predecessor) {
+      return std::make_tuple(predecessor->key, predecessor->value);
+    } else {
+      return {};
+    }
   }
+  return {};
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-std::tuple<const KeyType*, const ValueType*> AVL<KeyType, ValueType>::successor(
-    const KeyType& key) const {
-  Node<KeyType, ValueType>* foundNode = findNode(key, root);  // O(lg n)
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::successor(const KeyType& key) const
+    -> std::optional<std::tuple<KeyType, ValueType>> {
+  Node<KeyType, ValueType>* foundNode = findNode(key, root);
   if (foundNode) {
     if (foundNode->right) {
-      return minimumNode(foundNode->right)->key;  // O(lg n)
-    } else {
-      Node<KeyType, ValueType>* successor = successorUp(foundNode);  // O(lg n)
-      return {successor != nullptr ? &successor->key : nullptr,
-              successor != nullptr ? &successor->value : nullptr};
+      Node<KeyType, ValueType>* predecessor = minimumNode(foundNode->right);
+      return std::make_tuple(predecessor->key, predecessor->value);
     }
-  } else {
-    return {nullptr, nullptr};
+    Node<KeyType, ValueType>* successor = successorUp(foundNode);
+    if (successor) {
+      return std::make_tuple(successor->key, successor->value);
+    } else {
+      return {};
+    }
   }
+  return {};
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-const KeyType* AVL<KeyType, ValueType>::findKey(const KeyType& key) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::findKey(const KeyType& key) const
+    -> std::optional<KeyType> {
+  // NOLINTNEXTLINE
   Node<KeyType, ValueType>* foundNode = findNode(key, root);
   if (foundNode) {
-    return &foundNode->key;
-  } else {
-    return nullptr;
+    return foundNode->key;
   }
+  return {};
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-const ValueType* AVL<KeyType, ValueType>::find(const KeyType& key) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::find(const KeyType& key) const
+    -> std::optional<ValueType> {
   Node<KeyType, ValueType>* foundNode = findNode(key, root);
   if (foundNode) {
-    return &foundNode->value;
-  } else {
-    return nullptr;
+    return foundNode->value;
   }
+  return {};
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-const KeyType* AVL<KeyType, ValueType>::iterativeFindKey(
-    const KeyType& key) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::iterativeFindKey(const KeyType& key) const
+    -> std::optional<KeyType> {
   Node<KeyType, ValueType>* current = root;
   while (current) {
     int comp = comparator(key, current->key);
     if (comp == AVL_EQUAL) {
-      return &current->key;
+      return current->key;
     }
-    if (comp == AVL_GREATER)
+    if (comp == AVL_GREATER) {
       current = current->right;
-    else
+    } else {
       current = current->left;
+    }
   }
-  return nullptr;
+  return {};
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-void AVL<KeyType, ValueType>::fixup(Node<KeyType, ValueType>* _root) {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::fixup(Node<KeyType, ValueType>* _root) -> void {
   while (_root != nullptr) {
     Node<KeyType, ValueType>* nextParent = _root->parent;
     _root->hl = getHeight(_root->left);
@@ -317,6 +339,7 @@ void AVL<KeyType, ValueType>::fixup(Node<KeyType, ValueType>* _root) {
 
     if (balanceFactor < -1) {
       // right heavy
+      // NOLINTNEXTLINE
       int balanceFactorRight = _root->right->hl - _root->right->hr;
       if (balanceFactorRight >= 0) {
         // RL rotation
@@ -328,6 +351,7 @@ void AVL<KeyType, ValueType>::fixup(Node<KeyType, ValueType>* _root) {
       }
     } else if (balanceFactor > 1) {
       // left heavy
+      // NOLINTNEXTLINE
       int balanceFactorLeft = _root->left->hl - _root->left->hr;
       if (balanceFactorLeft <= 0) {
         // LR rotation
@@ -342,27 +366,27 @@ void AVL<KeyType, ValueType>::fixup(Node<KeyType, ValueType>* _root) {
   }
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-Node<KeyType, ValueType>* AVL<KeyType, ValueType>::minimumNode(
-    Node<KeyType, ValueType>* _root) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::minimumNode(Node<KeyType, ValueType>* _root) const
+    -> Node<KeyType, ValueType>* {
   while (_root->left != nullptr) {
     _root = _root->left;
   }
   return _root;
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-Node<KeyType, ValueType>* AVL<KeyType, ValueType>::maximumNode(
-    Node<KeyType, ValueType>* _root) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::maximumNode(Node<KeyType, ValueType>* _root) const
+    -> Node<KeyType, ValueType>* {
   while (_root->right != nullptr) {
     _root = _root->right;
   }
   return _root;
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-Node<KeyType, ValueType>* AVL<KeyType, ValueType>::successorUp(
-    Node<KeyType, ValueType>* _root) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::successorUp(Node<KeyType, ValueType>* _root) const
+    -> Node<KeyType, ValueType>* {
   Node<KeyType, ValueType>* y = _root->parent;
   while (y != nullptr && _root == y->right) {
     _root = y;
@@ -371,9 +395,9 @@ Node<KeyType, ValueType>* AVL<KeyType, ValueType>::successorUp(
   return y;
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-Node<KeyType, ValueType>* AVL<KeyType, ValueType>::predecessorUp(
-    Node<KeyType, ValueType>* _root) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::predecessorUp(
+    Node<KeyType, ValueType>* _root) const -> Node<KeyType, ValueType>* {
   Node<KeyType, ValueType>* y = _root->parent;
   while (y != nullptr && _root == y->left) {
     _root = y;
@@ -382,24 +406,26 @@ Node<KeyType, ValueType>* AVL<KeyType, ValueType>::predecessorUp(
   return y;
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-Node<KeyType, ValueType>* AVL<KeyType, ValueType>::findNode(
-    const KeyType& key,
-    Node<KeyType, ValueType>* _root) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+auto AVL<KeyType, ValueType>::findNode(const KeyType& key,
+                                       Node<KeyType, ValueType>* _root) const
+    -> Node<KeyType, ValueType>* {
   if (_root == nullptr) {
     return nullptr;
   }
   int comp = comparator(key, _root->key);
   if (comp == AVL_GREATER) {
+    // NOLINTNEXTLINE
     return findNode(key, _root->right);
   } else if (comp == AVL_LESS) {
+    // NOLINTNEXTLINE
     return findNode(key, _root->left);
   } else {
     return _root;
   }
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 void AVL<KeyType, ValueType>::inorderTraversal(
     Node<KeyType, ValueType>* _root,
     const std::function<void(const KeyType&, const ValueType&)>& process)
@@ -412,9 +438,10 @@ void AVL<KeyType, ValueType>::inorderTraversal(
   inorderTraversal(_root->right, process);
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 void AVL<KeyType, ValueType>::leftRotation(Node<KeyType, ValueType>* x,
                                            Node<KeyType, ValueType>* y) {
+  // NOLINTNEXTLINE
   if (y->left) {
     y->left->parent = x;
   }
@@ -434,9 +461,10 @@ void AVL<KeyType, ValueType>::leftRotation(Node<KeyType, ValueType>* x,
   y->hl = getHeight(y->left);
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 void AVL<KeyType, ValueType>::rightRotation(Node<KeyType, ValueType>* x,
                                             Node<KeyType, ValueType>* y) {
+  // NOLINTNEXTLINE
   if (y->right) {
     y->right->parent = x;
   }
@@ -456,7 +484,7 @@ void AVL<KeyType, ValueType>::rightRotation(Node<KeyType, ValueType>* x,
   y->hr = getHeight(y->right);
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 void AVL<KeyType, ValueType>::insertRecursive(Node<KeyType, ValueType>* current,
                                               const KeyType& key,
                                               const ValueType& value) {
@@ -509,28 +537,26 @@ void AVL<KeyType, ValueType>::insertRecursive(Node<KeyType, ValueType>* current,
   }
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
-inline int AVL<KeyType, ValueType>::getHeight(
-    Node<KeyType, ValueType>* node) const {
+template <MoveAssignable KeyType, MoveAssignable ValueType>
+inline auto AVL<KeyType, ValueType>::getHeight(
+    Node<KeyType, ValueType>* node) const -> int {
   if (node == nullptr) {
     return 0;
-  } else {
-    return std::max({node->hl, node->hr}) + 1;
   }
+  return std::max({node->hl, node->hr}) + 1;
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 void AVL<KeyType, ValueType>::clear(Node<KeyType, ValueType>* _root) {
   if (_root == nullptr) {
     return;
-  } else {
-    clear(_root->left);
-    clear(_root->right);
-    delete _root;
   }
+  clear(_root->left);
+  clear(_root->right);
+  delete _root;
 }
 
-template <CopyConstructible KeyType, CopyConstructible ValueType>
+template <MoveAssignable KeyType, MoveAssignable ValueType>
 AVL<KeyType, ValueType>::~AVL() noexcept {
   clear(root);
 }

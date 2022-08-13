@@ -1,17 +1,21 @@
 #include "helpers.hpp"
 
-void measureTime(const std::function<void(void)>& compute) {
+auto measureTime(const char* benchmarkName,
+                 const std::function<void(void)>& compute) -> void {
+  // NOLINTNEXTLINE
   std::chrono::high_resolution_clock::time_point start =
       std::chrono::high_resolution_clock::now();
   compute();
+  // NOLINTNEXTLINE
   std::chrono::high_resolution_clock::time_point end =
       std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> execTime =
-      std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
-  log("time taken: %lf seconds\n", execTime.count());
+
+  log("%s took: %lf seconds\n", benchmarkName,
+      std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
+          .count());
 }
 
-std::vector<std::string> splitOnSpaces(const std::string& s) {
+auto splitOnSpaces(const std::string& s) -> std::vector<std::string> {
   std::vector<std::string> svec;
   std::string word;
   size_t s_size = s.length();
@@ -31,12 +35,12 @@ std::vector<std::string> splitOnSpaces(const std::string& s) {
   return svec;
 }
 
-bool isMonotonicallyIncreasing(const std::vector<std::string>& svec) {
+auto isMonotonicallyIncreasing(const std::vector<std::string>& svec) -> bool {
   for (size_t i = 0; i < svec.size() - 1; ++i) {
-    if (atoi(svec[i].c_str()) < atoi(svec[i + 1].c_str()))
+    if (atoi(svec[i].c_str()) < atoi(svec[i + 1].c_str())) {
       continue;
-    else
-      return false;
+    }
+    return false;
   }
   return true;
 }

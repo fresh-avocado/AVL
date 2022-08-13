@@ -1,0 +1,62 @@
+#!/bin/sh
+
+RED='\033[0;31;1m'
+GREEN='\033[0;32;1m'
+BLUE='\033[0;34;1m'
+YELLOW='\033[1;33;1m'
+NORMAL='\033[0m'
+
+# $? es el exit code del último comando que el script corrió
+
+echo "${YELLOW}Checking your commit...\n"
+echo "${BLUE}Compiling your source code...${NORMAL}\n"
+
+make prod
+
+if [ $? -ne 0 ]
+then
+  echo "${RED}Compiling failed with exit code ${$?}${NORMAL}\n"
+  exit 1
+fi
+
+echo "${BLUE}Compiling your tests...${NORMAL}\n"
+
+make tests
+
+if [ $? -ne 0 ]
+then
+  echo "${RED}Compiling failed with exit code ${$?}${NORMAL}\n"
+  exit 1
+fi
+
+echo "${GREEN}Compilation successful.${NORMAL}\n"
+
+echo "${BLUE}Formatting and linting your code...${NORMAL}\n"
+
+find -E . -regex ".*\.(cpp|c|hpp|h)" -type f -print0 | xargs -0 clang-tidy -fix -extra-arg=-std=c++2a
+
+if [ $? -ne 0 ]
+then
+  echo "${RED}Linting failed with exit code ${$?}${NORMAL}\n"
+  exit 1
+fi
+
+echo "${GREEN}Linting succesful.${NORMAL}\n"
+
+echo "${YELLOW}Running tests...${NORMAL}\n"
+
+./avltest
+
+if [ $? -ne 0 ]
+then
+  echo "${RED}Tests failed with exit code ${$?}${NORMAL}\n"
+  exit 1
+fi
+
+echo "${GREEN}All tests passed!${NORMAL}\n"
+
+echo "Cleaning..."
+
+make clean
+
+echo "${GREEN}Done :)${NORMAL}\n"

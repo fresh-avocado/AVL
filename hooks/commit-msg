@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+
+import sys, re
+
+RED = '\033[0;31;1m'
+GREEN = '\033[0;32;1m'
+#BLUE = '\033[0;34;1m'
+PURPLE = '\033[0;35;1m'
+CYAN = '\033[0;36;1m'
+#YELLOW = '\033[1;33;1m'
+#BOLD = '\033[1m'
+NORMAL = '\033[0m'
+
+commit_msg_filepath = sys.argv[1]
+
+print('{}Checking commit msg structure...\n'.format(CYAN))
+
+with open(commit_msg_filepath, 'r') as f:
+  content = f.read()
+  conventional_commit = re.compile('^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(.*\))!?: .{4,}$')
+  if conventional_commit.match(content) == None:
+    print('{}Commit msg does not comply with conventional commit style.{} See https://www.conventionalcommits.org/en/ for more info.\n'.format(RED, PURPLE))
+    sys.exit(1)
+  else:
+    print('{}Commit msg OK.{}\n'.format(GREEN, NORMAL))
+    sys.exit(0)
+  

@@ -27,7 +27,7 @@ avl.debug.o: avl.cpp
 helpers.debug.o: helpers.hpp helpers.cpp
 	$(CPP) $(CPPFLAGS) $(DEBUGFLAGS) -c ./src/utils/helpers.cpp -o helpers.debug.o
 
-test: tests.o avl.debug.o helpers.debug.o
+tests: tests.o avl.debug.o helpers.debug.o
 	$(CPP) $(CPPFLAGS) tests.o avl.debug.o helpers.debug.o -o avltest
 
 tests.o: tests.cpp

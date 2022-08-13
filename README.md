@@ -19,7 +19,7 @@ make debug
 ### Tests
 
 ```bash
-make test
+make tests
 ./avltest
 ```
 

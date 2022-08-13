@@ -9,6 +9,7 @@
 #define log(...)
 #endif
 
-void measureTime(const std::function<void(void)>& compute);
-std::vector<std::string> splitOnSpaces(const std::string& s);
-bool isMonotonicallyIncreasing(const std::vector<std::string>& svec);
+auto measureTime(const char* benchmarkName,
+                 const std::function<void(void)>& compute) -> void;
+auto splitOnSpaces(const std::string& s) -> std::vector<std::string>;
+auto isMonotonicallyIncreasing(const std::vector<std::string>& svec) -> bool;
