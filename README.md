@@ -15,14 +15,14 @@ chmod +x ./hooks/configure.sh
 
 ```bash
 make prod
-./avl
+./avlprod
 ```
 
 ### Logs On
 
 ```bash
 make debug
-./avl
+./avldebug
 ```
 
 ### Tests
